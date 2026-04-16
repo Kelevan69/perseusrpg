@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎮 Моя первая RPG "Персей"</title>
+  <style>
+    body { 
+      font-family: system-ui, sans-serif; 
+      background: #0f0f1a; 
+      color: #e0e0ff; 
+      max-width: 700px; 
+      margin: 2rem auto; 
+      padding: 1rem; 
+      line-height: 1.6;
+    }
+    button { 
+      display: block; 
+      width: 100%; 
+      padding: 12px; 
+      margin: 8px 0; 
+      background: #4a55ff; 
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    button:hover { background: #3a45cc; }
+    #stats { 
+      background: #1a1a2e; 
+      padding: 12px; 
+      border-radius: 8px; 
+      margin-bottom: 1rem; 
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚔️ Моя первая RPG</h1>
+  <div id="stats">❤️ HP: <span id="hp">100</span> | 🪙 Золото: <span id="gold">0</span> | ⭐ Уровень: <span id="lvl">1</span></div>
+  <div id="scene">Загрузка...</div>
+  <div id="choices"></div>
+
+  <script>
+    // Состояние игры
+    let state = { hp: 100, gold: 0, lvl: 1, scene: 'start' };
+
+    // Сцены игры
+    const scenes = {
+      start: {
+        text: 'Вы стоите у входа в тёмный лес. Ветер гнёт сухие ветви. Что будете делать?',
+        choices: [
+          { text: '🌲 Войти в лес', next: 'forest' },
+          { text: '🏠 Вернуться в деревню', next: 'village' }
+        ]
+      },
+      forest: {
+        text: 'Между деревьями мелькает тень. Вы чувствуете взгляд...',
+        choices: [
+          { text: '🗡️ Идти на звук (риск)', effect: () => { state.hp -= 15; }, next: 'encounter' },
+          { text: '👣 Обойти стороной', effect: () => { state.gold += 3; }, next: 'clearing' }
+        ]
+      },
+      encounter: {
+        text: 'Гоблин атакует! Вы отбиваетесь, но получаете царапины.',
+        choices: [{ text: '➡️ Продолжить путь', next: 'clearing' }]
+      },
+      clearing: {
+        text: 'Поляна. Старый сундук. В нём 10 золотых!',
+        choices: [{ 
+          text: '💰 Взять и отдохнуть (+1 уровень)', 
+          effect: () => { state.gold += 10; state.lvl++; state.hp = Math.min(100, state.hp + 20); }, 
+          next: 'start' 
+        }]
+      },
+      village: {
+        text: 'Деревня спит. Безопасно, но скучно. Может, всё-таки в лес?',
+        choices: [{ text: '🌲 Да, выйти к лесу', next: 'start' }]
+      }
+    };
+
+    // Отрисовка сцены
+    function render() {
+      const s = scenes[state.scene];
+      document.getElementById('hp').textContent = state.hp;
+      document.getElementById('gold').textContent = state.gold;
+      document.getElementById('lvl').textContent = state.lvl;
+      document.getElementById('scene').textContent = s.text;
+      
+      const choicesEl = document.getElementById('choices');
+      choicesEl.innerHTML = '';
+      s.choices.forEach(c => {
+        const btn = document.createElement('button');
+        btn.textContent = c.text;
+        btn.onclick = () => {
+          if (c.effect) c.effect();
+          if (state.hp <= 0) {
+            alert('💀 Вы погибли. Начинаем заново.');
+            state = { hp: 100, gold: 0, lvl: 1, scene: 'start' };
+          }
+          state.scene = c.next;
+          saveState();
+          render();
+        };
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    // Сохранение/загрузка прогресса
+    function saveState() { localStorage.setItem('rpg_save', JSON.stringify(state)); }
+    function loadState() {
+      const saved = localStorage.getItem('rpg_save');
+      if (saved) state = { ...state, ...JSON.parse(saved) };
+    }
+
+    // Старт
+    loadState();
+    render();
+  </script>
+</body>
+</html>
