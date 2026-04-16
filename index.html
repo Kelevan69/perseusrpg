@@ -2,51 +2,141 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <title>⚔️ Perseus RPG</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0f0f2a 100%); color: #e0e0ff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 1rem; position: relative; overflow-x: hidden; }
-    .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-    .star { position: absolute; width: 2px; height: 2px; background: rgba(255,255,255,0.8); border-radius: 50%; animation: twinkle 2s infinite ease-in-out; }
-    @keyframes twinkle { 0%,100%{opacity:0.3;transform:scale(1);} 50%{opacity:1;transform:scale(1.2);} }
-    #start-menu { text-align: center; z-index: 10; animation: fadeIn 0.8s ease-out; max-width: 500px; width: 100%; margin-top: 10vh; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    #title { font-size: 3rem; font-weight: bold; margin-bottom: 0.5rem; background: linear-gradient(90deg, #ffd700, #ff6b6b, #4ecdc4, #ffd700); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientShift 4s ease infinite; }
-    @keyframes gradientShift { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
-    #subtitle { font-size: 1.1rem; color: #aaa; margin-bottom: 2rem; font-style: italic; }
-    .menu-btn { display: block; width: 100%; max-width: 300px; margin: 10px auto; padding: 16px 24px; background: linear-gradient(135deg, #4a55ff, #6a7aff); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 20px rgba(74,85,255,0.4); }
-    .menu-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(74,85,255,0.6); }
-    .menu-btn.secondary { background: linear-gradient(135deg, #2a2a4a, #3a3a5a); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-    .menu-btn.secondary:hover { background: linear-gradient(135deg, #3a3a5a, #4a4a6a); }
-    .menu-btn.danger { background: linear-gradient(135deg, #ff4757, #ff6b7a); }
-    .menu-btn.danger:hover { background: linear-gradient(135deg, #ff6b7a, #ff8fa3); box-shadow: 0 8px 30px rgba(255,71,87,0.5); }
-    #game-ui { display: none; z-index: 10; max-width: 800px; width: 100%; animation: slideUp 0.5s ease-out; margin-top: 1rem; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    #stats { background: linear-gradient(135deg, #1a1a2e, #252542); padding: 12px 16px; border-radius: 10px; margin-bottom: 1rem; display: flex; justify-content: space-around; font-weight: 600; border: 1px solid rgba(106,90,249,0.3); flex-wrap: wrap; gap: 8px; }
-    #stats span { color: #ffd700; }
-    #map-view, #event-view, #intro-view { margin-bottom: 1rem; }
-    .map-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-    .map-node { padding: 14px; border-radius: 8px; border: 2px solid #333; background: #1a1a2e; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
-    .map-node.locked { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
-    .map-node.available { border-color: #4a55ff; box-shadow: 0 0 10px rgba(74,85,255,0.3); }
-    .map-node.available:hover { transform: translateY(-2px); background: #222244; }
-    .map-node.current { border-color: #ffd700; background: #2a2a4a; box-shadow: 0 0 15px rgba(255,215,0,0.4); }
-    .map-node.visited { border-color: #4ecdc4; opacity: 0.75; }
-    .node-icon { font-size: 1.8rem; display: block; margin-bottom: 6px; }
-    .node-label { font-weight: 600; margin-bottom: 4px; }
-    .node-status { font-size: 0.75rem; color: #888; }
-    #event-view, #intro-view { display: none; background: linear-gradient(135deg, #1a1a2e, #252542); padding: 1.5rem; border-radius: 12px; border-left: 4px solid #6a5af9; min-height: 120px; }
-    #event-text, #intro-text { font-size: 1.1rem; line-height: 1.6; margin-bottom: 1rem; white-space: pre-line; }
-    #event-actions, #intro-actions { display: flex; flex-direction: column; gap: 10px; }
-    .event-btn, .intro-btn { display: block; width: 100%; padding: 12px; background: linear-gradient(135deg, #4a55ff, #5a65ff); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.2s; }
-    .event-btn:hover, .intro-btn:hover { background: linear-gradient(135deg, #5a65ff, #6a7aff); transform: translateX(4px); }
-    #intro-image { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5rem 0 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-    #intro-page-indicator { text-align: right; font-size: 0.85rem; color: #888; margin-top: 8px; }
-    #menu-toggle { position: fixed; top: 15px; right: 15px; padding: 10px 16px; background: rgba(26,26,46,0.9); border: 1px solid rgba(106,90,249,0.5); color: #aaa; border-radius: 8px; cursor: pointer; font-size: 0.9rem; z-index: 20; transition: all 0.2s; }
-    #menu-toggle:hover { background: rgba(42,42,74,0.95); color: #fff; border-color: #6a5af9; }
-    @media (max-width: 600px) { #title { font-size: 2.2rem; } .map-grid { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); } #stats { flex-direction: column; align-items: center; } }
-  </style>
+<style>
+  :root {
+    --bg-primary: #0a0a1a;
+    --bg-secondary: #1a1a2e;
+    --bg-tertiary: #252542;
+    --accent: #4a55ff;
+    --accent-hover: #5a65ff;
+    --gold: #ffd700;
+    --text: #e0e0ff;
+    --text-muted: #aaa;
+    --border: rgba(106, 90, 249, 0.3);
+    --radius: 12px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.4);
+    --touch-min: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  
+  body { 
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; 
+    background: radial-gradient(circle at 20% 30%, #1a1a3a 0%, var(--bg-primary) 70%); 
+    color: var(--text); 
+    min-height: 100dvh; /* Dynamic viewport height для мобильных */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: clamp(0.8rem, 2vw, 1.5rem);
+    position: relative;
+    overflow-x: hidden;
+    line-height: 1.5;
+  }
+
+  .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+  .star { position: absolute; width: 2px; height: 2px; background: rgba(255,255,255,0.8); border-radius: 50%; animation: twinkle 2s infinite ease-in-out; }
+  @keyframes twinkle { 0%,100%{opacity:0.3;transform:scale(1);} 50%{opacity:1;transform:scale(1.2);} }
+
+  /* 🎮 Главное меню */
+  #start-menu { 
+    text-align: center; z-index: 10; animation: fadeIn 0.6s ease-out; 
+    width: min(100%, 500px); margin-top: clamp(1rem, 10vh, 4rem); 
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+  
+  #title { 
+    font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 800; margin-bottom: 0.4rem; 
+    background: linear-gradient(90deg, #ffd700, #ff6b6b, #4ecdc4, #ffd700); 
+    background-size: 300% 300%; -webkit-background-clip: text; background-clip: text; color: transparent; 
+    animation: gradientShift 4s ease infinite; letter-spacing: -0.5px;
+  }
+  @keyframes gradientShift { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
+  #subtitle { font-size: clamp(0.9rem, 2.5vw, 1.1rem); color: var(--text-muted); margin-bottom: 1.5rem; font-style: italic; }
+
+  .menu-btn { 
+    display: block; width: 100%; min-height: var(--touch-min); 
+    margin: 10px 0; padding: clamp(12px, 2vw, 16px) 20px; 
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover)); 
+    color: white; border: none; border-radius: var(--radius); 
+    font-size: clamp(0.95rem, 2.5vw, 1.1rem); font-weight: 600; 
+    cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow); 
+    touch-action: manipulation;
+  }
+  .menu-btn:active { transform: scale(0.98); }
+  .menu-btn.secondary { background: linear-gradient(135deg, #2a2a4a, #3a3a5a); box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+  .menu-btn.danger { background: linear-gradient(135deg, #ff4757, #ff6b7a); }
+
+  /* 🎮 Игровой интерфейс */
+  #game-ui { display: none; z-index: 10; width: min(100%, 850px); margin-top: 0.5rem; animation: slideUp 0.4s ease-out; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+  #stats { 
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); 
+    padding: clamp(8px, 2vw, 12px) clamp(10px, 2vw, 16px); 
+    border-radius: var(--radius); margin-bottom: 1rem; 
+    display: flex; justify-content: center; flex-wrap: wrap; gap: clamp(8px, 2vw, 16px); 
+    font-weight: 600; border: 1px solid var(--border); box-shadow: var(--shadow); 
+    font-size: clamp(0.85rem, 2vw, 1rem);
+  }
+  #stats span { color: var(--gold); }
+
+  /* 🗺️ Карта */
+  #map-view { margin-bottom: 1rem; }
+  .map-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+  .map-node { 
+    padding: 14px; border-radius: var(--radius); border: 2px solid #333; background: var(--bg-secondary); 
+    text-align: center; cursor: pointer; transition: all 0.2s; min-height: var(--touch-min); display: flex; flex-direction: column; justify-content: center; align-items: center; touch-action: manipulation;
+  }
+  .map-node.locked { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); pointer-events: none; }
+  .map-node.available { border-color: var(--accent); box-shadow: 0 0 12px rgba(74,85,255,0.25); }
+  .map-node.available:active { transform: scale(0.97); background: #222244; }
+  .map-node.current { border-color: var(--gold); background: var(--bg-tertiary); box-shadow: 0 0 15px rgba(255,215,0,0.3); }
+  .map-node.visited { border-color: #4ecdc4; opacity: 0.8; }
+  .node-icon { font-size: clamp(1.5rem, 4vw, 1.8rem); display: block; margin-bottom: 4px; }
+  .node-label { font-weight: 600; font-size: clamp(0.8rem, 2vw, 0.95rem); margin-bottom: 2px; }
+  .node-status { font-size: 0.7rem; color: #888; }
+
+  /* 📖 События и Интро */
+  #event-view, #intro-view { 
+    display: none; background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); 
+    padding: clamp(1rem, 3vw, 1.5rem); border-radius: var(--radius); 
+    border-left: 4px solid #6a5af9; min-height: 150px; margin-bottom: 1rem; 
+  }
+  #event-text, #intro-text { font-size: clamp(0.95rem, 2.5vw, 1.1rem); line-height: 1.6; margin-bottom: 1rem; white-space: pre-line; }
+  #intro-image { max-width: 100%; height: auto; border-radius: var(--radius); margin: 0.5rem 0 1rem; box-shadow: var(--shadow); object-fit: cover; }
+  #intro-page-indicator { text-align: right; font-size: 0.8rem; color: #888; margin-top: 8px; }
+  
+  #event-actions, #intro-actions { display: flex; flex-direction: column; gap: 10px; }
+  .event-btn, .intro-btn { 
+    display: block; width: 100%; min-height: var(--touch-min); padding: 12px 16px; 
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover)); 
+    color: white; border: none; border-radius: calc(var(--radius) - 4px); 
+    cursor: pointer; font-size: clamp(0.9rem, 2.2vw, 1rem); font-weight: 500; 
+    transition: all 0.2s; touch-action: manipulation;
+  }
+  .event-btn:active, .intro-btn:active { transform: scale(0.98); filter: brightness(0.9); }
+
+  #menu-toggle { 
+    position: fixed; top: env(safe-area-inset-top, 15px); right: env(safe-area-inset-right, 15px); 
+    padding: 10px 14px; background: rgba(26,26,46,0.95); border: 1px solid var(--border); 
+    color: #aaa; border-radius: 8px; cursor: pointer; font-size: 0.85rem; z-index: 50; 
+    transition: all 0.2s; min-height: 44px; display: flex; align-items: center; touch-action: manipulation;
+  }
+  #menu-toggle:active { background: rgba(42,42,74,0.98); color: #fff; }
+
+  /* 📱 Мобильные оптимизации */
+  @media (max-width: 480px) {
+    .map-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    #stats { flex-direction: column; align-items: stretch; gap: 6px; }
+    .menu-btn { margin: 8px 0; }
+  }
+
+  /* 🌐 Предотвращение скролла при открытом меню на iOS */
+  body.menu-open { overflow: hidden; }
+</style>
 </head>
 <body>
   <div class="stars" id="stars"></div>
