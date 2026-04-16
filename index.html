@@ -3,51 +3,271 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🎮 Моя первая RPG "Персей"</title>
+  <title>⚔️ Perseus RPG</title>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
     body { 
-      font-family: system-ui, sans-serif; 
-      background: #0f0f1a; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0f0f2a 100%); 
       color: #e0e0ff; 
-      max-width: 700px; 
-      margin: 2rem auto; 
-      padding: 1rem; 
-      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      position: relative;
+      overflow-x: hidden;
     }
-    button { 
+
+    /* ✨ Анимированный фон (звёзды) */
+    .stars {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .star {
+      position: absolute;
+      width: 2px; height: 2px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      animation: twinkle 2s infinite ease-in-out;
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* 🎮 Стартовое меню */
+    #start-menu {
+      text-align: center;
+      z-index: 10;
+      animation: fadeIn 0.8s ease-out;
+      max-width: 500px;
+      width: 100%;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #title {
+      font-size: 3rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, #ffd700, #ff6b6b, #4ecdc4, #ffd700);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 4s ease infinite;
+      text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    }
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    #subtitle {
+      font-size: 1.1rem;
+      color: #aaa;
+      margin-bottom: 2rem;
+      font-style: italic;
+    }
+
+    .menu-btn {
+      display: block;
+      width: 100%;
+      max-width: 300px;
+      margin: 10px auto;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, #4a55ff, #6a7aff);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(74, 85, 255, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .menu-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    .menu-btn:hover::before { left: 100%; }
+    .menu-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(74, 85, 255, 0.6);
+    }
+    .menu-btn:active { transform: translateY(-1px); }
+
+    .menu-btn.secondary {
+      background: linear-gradient(135deg, #2a2a4a, #3a3a5a);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .menu-btn.secondary:hover {
+      background: linear-gradient(135deg, #3a3a5a, #4a4a6a);
+      box-shadow: 0 8px 30px rgba(100, 100, 150, 0.4);
+    }
+
+    .menu-btn.danger {
+      background: linear-gradient(135deg, #ff4757, #ff6b7a);
+    }
+    .menu-btn.danger:hover {
+      background: linear-gradient(135deg, #ff6b7a, #ff8fa3);
+      box-shadow: 0 8px 30px rgba(255, 71, 87, 0.5);
+    }
+
+    /* 🎮 Игровой интерфейс (скрыт по умолчанию) */
+    #game-ui {
+      display: none;
+      z-index: 10;
+      max-width: 700px;
+      width: 100%;
+      animation: slideUp 0.5s ease-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #stats { 
+      background: linear-gradient(135deg, #1a1a2e, #252542); 
+      padding: 15px 20px; 
+      border-radius: 12px; 
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-around;
+      font-weight: 600;
+      border: 1px solid rgba(106, 90, 249, 0.3);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    #stats span { color: #ffd700; }
+
+    #scene { 
+      background: linear-gradient(135deg, #1a1a2e, #252542); 
+      padding: 1.5rem; 
+      border-radius: 12px; 
+      margin-bottom: 1.5rem; 
+      font-size: 1.1rem;
+      line-height: 1.7;
+      border-left: 4px solid #6a5af9;
+      min-height: 120px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    #choices { display: flex; flex-direction: column; gap: 10px; }
+
+    .game-btn { 
       display: block; 
       width: 100%; 
-      padding: 12px; 
-      margin: 8px 0; 
-      background: #4a55ff; 
+      padding: 14px 20px; 
+      background: linear-gradient(135deg, #4a55ff, #5a65ff); 
       color: white; 
       border: none; 
-      border-radius: 8px; 
+      border-radius: 10px; 
       cursor: pointer; 
       font-size: 1rem;
-      transition: background 0.2s;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
     }
-    button:hover { background: #3a45cc; }
-    #stats { 
-      background: #1a1a2e; 
-      padding: 12px; 
-      border-radius: 8px; 
-      margin-bottom: 1rem; 
-      font-size: 0.95rem;
+    .game-btn:hover { 
+      background: linear-gradient(135deg, #5a65ff, #6a7aff); 
+      transform: translateX(5px);
+      box-shadow: 0 4px 15px rgba(74, 85, 255, 0.4);
+    }
+    .game-btn:active { transform: translateX(2px); }
+
+    /* 🔘 Кнопка меню в игре */
+    #menu-toggle {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      padding: 10px 16px;
+      background: rgba(26, 26, 46, 0.9);
+      border: 1px solid rgba(106, 90, 249, 0.5);
+      color: #aaa;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      z-index: 20;
+      transition: all 0.2s;
+    }
+    #menu-toggle:hover {
+      background: rgba(42, 42, 74, 0.95);
+      color: #fff;
+      border-color: #6a5af9;
+    }
+
+    /* 📱 Адаптив */
+    @media (max-width: 600px) {
+      #title { font-size: 2.2rem; }
+      #subtitle { font-size: 1rem; }
+      .menu-btn, .game-btn { padding: 14px 20px; font-size: 1rem; }
+      #stats { flex-direction: column; gap: 8px; text-align: center; }
     }
   </style>
 </head>
 <body>
-  <h1>⚔️ Моя первая RPG</h1>
-  <div id="stats">❤️ HP: <span id="hp">100</span> | 🪙 Золото: <span id="gold">0</span> | ⭐ Уровень: <span id="lvl">1</span></div>
-  <div id="scene">Загрузка...</div>
-  <div id="choices"></div>
+
+  <!-- ✨ Звёздный фон -->
+  <div class="stars" id="stars"></div>
+
+  <!-- 🎮 Стартовое меню -->
+  <div id="start-menu">
+    <h1 id="title">⚔️ PERSEUS RPG</h1>
+    <p id="subtitle">Легенда начинается с одного шага...</p>
+    
+    <button class="menu-btn" onclick="startGame()">🗡️ Начать приключение</button>
+    <button class="menu-btn secondary" id="continue-btn" onclick="continueGame()" style="display:none">▶️ Продолжить</button>
+    <button class="menu-btn danger" onclick="resetGame()">🗑️ Новый герой</button>
+    
+    <p style="margin-top: 2rem; font-size: 0.85rem; color: #666;">
+      v1.0 • Текстовая RPG • Прогресс сохраняется в браузере
+    </p>
+  </div>
+
+  <!-- 🎮 Игровой интерфейс -->
+  <div id="game-ui">
+    <button id="menu-toggle" onclick="showMenu()">⚙️ Меню</button>
+    
+    <div id="stats">❤️ HP: <span id="hp">100</span> | 🪙 Золото: <span id="gold">0</span> | ⭐ Уровень: <span id="lvl">1</span></div>
+    <div id="scene">Загрузка...</div>
+    <div id="choices"></div>
+  </div>
 
   <script>
-    // Состояние игры
-    let state = { hp: 100, gold: 0, lvl: 1, scene: 'start' };
+    // ✨ Генерация звёзд для фона
+    function createStars() {
+      const container = document.getElementById('stars');
+      for (let i = 0; i < 80; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 2 + 's';
+        star.style.opacity = Math.random() * 0.7 + 0.3;
+        container.appendChild(star);
+      }
+    }
+    createStars();
 
-    // Сцены игры
+    // 🎮 Состояние игры
+    let state = { hp: 100, gold: 0, lvl: 1, scene: 'start' };
+    let gameStarted = false;
+
+    // 📦 Сцены игры
     const scenes = {
       start: {
         text: 'Вы стоите у входа в тёмный лес. Ветер гнёт сухие ветви. Что будете делать?',
@@ -81,9 +301,67 @@
       }
     };
 
-    // Отрисовка сцены
+    // 🚀 Запуск игры
+    function startGame() {
+      if (!gameStarted) {
+        state = { hp: 100, gold: 0, lvl: 1, scene: 'start' };
+        saveState();
+      }
+      gameStarted = true;
+      document.getElementById('start-menu').style.display = 'none';
+      document.getElementById('game-ui').style.display = 'block';
+      render();
+    }
+
+    // ▶️ Продолжить с сохранения
+    function continueGame() {
+      loadState();
+      gameStarted = true;
+      document.getElementById('start-menu').style.display = 'none';
+      document.getElementById('game-ui').style.display = 'block';
+      render();
+    }
+
+    // 🗑️ Сброс прогресса
+    function resetGame() {
+      if (confirm('⚠️ Удалить весь прогресс и начать заново?')) {
+        localStorage.removeItem('rpg_save');
+        state = { hp: 100, gold: 0, lvl: 1, scene: 'start' };
+        gameStarted = false;
+        render();
+        // Обновить вид кнопки "Продолжить"
+        updateContinueButton();
+      }
+    }
+
+    // ⚙️ Показать меню из игры
+    function showMenu() {
+      if (confirm('⏸️ Пауза. Вернуться в главное меню? (прогресс сохранён)')) {
+        document.getElementById('start-menu').style.display = 'block';
+        document.getElementById('game-ui').style.display = 'none';
+        updateContinueButton();
+      }
+    }
+
+    // 🔄 Обновить вид кнопки "Продолжить"
+    function updateContinueButton() {
+      const hasSave = localStorage.getItem('rpg_save');
+      document.getElementById('continue-btn').style.display = hasSave ? 'block' : 'none';
+    }
+
+    // 🎨 Отрисовка сцены
     function render() {
+      if (!gameStarted) {
+        updateContinueButton();
+        return;
+      }
+
       const s = scenes[state.scene];
+      if (!s) {
+        document.getElementById('scene').textContent = '❌ Ошибка: сцена не найдена';
+        return;
+      }
+
       document.getElementById('hp').textContent = state.hp;
       document.getElementById('gold').textContent = state.gold;
       document.getElementById('lvl').textContent = state.lvl;
@@ -93,12 +371,16 @@
       choicesEl.innerHTML = '';
       s.choices.forEach(c => {
         const btn = document.createElement('button');
+        btn.className = 'game-btn';
         btn.textContent = c.text;
         btn.onclick = () => {
           if (c.effect) c.effect();
           if (state.hp <= 0) {
-            alert('💀 Вы погибли. Начинаем заново.');
-            state = { hp: 100, gold: 0, lvl: 1, scene: 'start' };
+            if (confirm('💀 Вы погибли. Начать заново?')) {
+              state = { hp: 100, gold: 0, lvl: 1, scene: 'start' };
+            } else {
+              state.hp = 1; // оставить 1 HP, если игрок хочет продолжить
+            }
           }
           state.scene = c.next;
           saveState();
@@ -108,16 +390,26 @@
       });
     }
 
-    // Сохранение/загрузка прогресса
+    // 💾 Сохранение/загрузка
     function saveState() { localStorage.setItem('rpg_save', JSON.stringify(state)); }
     function loadState() {
       const saved = localStorage.getItem('rpg_save');
       if (saved) state = { ...state, ...JSON.parse(saved) };
     }
 
-    // Старт
-    loadState();
+    // 🎬 Инициализация
+    updateContinueButton();
     render();
+
+    // ⌨️ Поддержка клавиш (опционально)
+    document.addEventListener('keydown', (e) => {
+      if (!gameStarted) return;
+      const buttons = document.querySelectorAll('#choices .game-btn');
+      if (e.key >= '1' && e.key <= '9' && buttons[e.key - 1]) {
+        buttons[e.key - 1].click();
+      }
+      if (e.key === 'Escape') showMenu();
+    });
   </script>
 </body>
 </html>
