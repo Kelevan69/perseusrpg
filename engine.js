@@ -68,33 +68,36 @@
   }
 
   // 🗺️ Логика карты
-  function renderMap(){
-    state.view='map';
-    hideAllViews();
-    document.getElementById('map-view').style.display='block';
-    const grid=document.getElementById('map-grid'); grid.innerHTML='';
-    
-    Object.values(MAP_DATA).forEach(node=>{
-      const el=document.createElement('div'); el.className='map-node';
-      const status = state.map.current===node.id ? 'current' : 
-                     state.map.visited.includes(node.id) ? 'visited' :
-                     state.map.unlocked.includes(node.id) ? 'available' : 'locked';
-      el.classList.add(status);
-      el.innerHTML=`<span class="node-icon">${node.icon}</span><div class="node-label">${node.label}</div><div class="node-status">${status==='current'?'Вы здесь':status==='available'?'Доступно':status==='visited'?'Пройдено':'Заблокировано'}</div>`;
-      if(status==='available'){ el.onclick=()=>enterNode(node.id); }
-      grid.appendChild(el);
-    });
-    saveState();
-  }
+function renderMap(){
+  state.view='map';
+  hideAllViews();
+  document.getElementById('map-view').style.display='block';
+  const grid=document.getElementById('map-grid'); grid.innerHTML='';
+  
+  // 🔥 Показываем как доступные: текущие + разблокированные + посещённые (для возврата)
+  Object.values(MAP_DATA).forEach(node=>{
+    const el=document.createElement('div'); el.className='map-node';
+    const status = state.map.current===node.id ? 'current' : 
+                   state.map.unlocked.includes(node.id) ? 'available' :
+                   state.map.visited.includes(node.id) ? 'visited' : 'locked';
+    el.classList.add(status);
+    el.innerHTML=`<span class="node-icon">${node.icon}</span><div class="node-label">${node.label}</div><div class="node-status">${status==='current'?'Вы здесь':status==='available'?'Доступно':status==='visited'?'Пройдено':'Заблокировано'}</div>`;
+    // 🔥 Теперь можно кликать на available И visited
+    if(status==='available' || status==='visited'){ el.onclick=()=>enterNode(node.id); }
+    grid.appendChild(el);
+  });
+  saveState();
+}
 
-  function enterNode(id){
-    const node=MAP_DATA[id];
-    state.map.current=id;
-    if(!state.map.visited.includes(id)) state.map.visited.push(id);
-    state.map.unlocked=[...new Set([...state.map.unlocked, ...node.connections])].filter(n=>!state.map.visited.includes(n));
-    state.lastEvent=id;
-    resolveNode(node);
-  }
+function enterNode(id){
+  const node=MAP_DATA[id];
+  state.map.current=id;
+  if(!state.map.visited.includes(id)) state.map.visited.push(id);
+  // 🔥 НЕ фильтруем visited из unlocked — можно возвращаться
+  state.map.unlocked=[...new Set([...state.map.unlocked, ...node.connections])];
+  state.lastEvent=id;
+  resolveNode(node);
+}
 
   function resolveNode(node){
     state.view='event';
