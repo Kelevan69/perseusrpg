@@ -1,4 +1,4 @@
-// engine.js
+// engine.js (ЗАМЕНИТЬ ПОЛНОСТЬЮ)
 (function() {
   let state = { hp:100, gold:0, lvl:1, view:'intro', map:{current:'n1', visited:['n1'], unlocked:['n2','n3']} };
   let gameStarted = false;
@@ -6,19 +6,11 @@
 
   // 🎮 Управление
   function startGame() { 
-    if(!gameStarted){ 
-      state={hp:100,gold:0,lvl:1,view:'intro',map:{current:'n1',visited:['n1'],unlocked:['n2','n3']}}; 
-      saveState(); 
-    } 
-    gameStarted=true; 
-    switchUI('game'); 
-    showIntro(); 
+    if(!gameStarted){ state={hp:100,gold:0,lvl:1,view:'intro',map:{current:'n1',visited:['n1'],unlocked:['n2','n3']}}; } 
+    gameStarted=true; switchUI('game'); updateStatsUI(); showIntro(); 
   }
   function continueGame() { 
-    loadState(); 
-    gameStarted=true; 
-    switchUI('game'); 
-    // Если сохранение в интро, продолжаем, иначе сразу карта
+    loadState(); gameStarted=true; switchUI('game'); updateStatsUI();
     if(state.view==='intro') showIntro(true); 
     else if(state.view==='map') renderMap(); 
     else showEvent(state.lastEvent||'n1'); 
@@ -28,16 +20,20 @@
   function switchUI(mode){ document.getElementById('start-menu').style.display=mode==='menu'?'block':'none'; document.getElementById('game-ui').style.display=mode==='game'?'block':'none'; }
   function updateContinue(){ document.getElementById('continue-btn').style.display=localStorage.getItem('rpg_save')?'block':'none'; }
 
+  // 📊 Обновление статов (НОВОЕ)
+  function updateStatsUI() {
+    document.getElementById('hp').textContent = state.hp;
+    document.getElementById('gold').textContent = state.gold;
+    document.getElementById('lvl').textContent = state.lvl;
+  }
+
   // 🎬 Логика интро
   function showIntro(isResume=false) {
     currentIntroPage = isResume ? (state.introPage || 0) : 0;
-    state.view = 'intro';
-    hideAllViews();
+    state.view = 'intro'; hideAllViews();
     document.getElementById('intro-view').style.display = 'block';
-    renderIntroPage();
-    saveState();
+    renderIntroPage(); saveState();
   }
-
   function renderIntroPage() {
     const page = INTRO_DATA[currentIntroPage];
     document.getElementById('intro-text').innerText = page.text;
@@ -46,64 +42,48 @@
     else { imgEl.style.display = 'none'; }
     document.getElementById('intro-page-indicator').innerText = `${currentIntroPage + 1} / ${INTRO_DATA.length}`;
   }
-
   function nextIntroPage() {
     currentIntroPage++;
     if (currentIntroPage < INTRO_DATA.length) {
-      state.introPage = currentIntroPage;
-      saveState();
-      renderIntroPage();
+      state.introPage = currentIntroPage; saveState(); renderIntroPage();
     } else {
-      state.view = 'map';
-      delete state.introPage;
-      saveState();
-      hideAllViews();
-      document.getElementById('map-view').style.display = 'block';
-      renderMap();
+      state.view = 'map'; delete state.introPage; saveState();
+      hideAllViews(); document.getElementById('map-view').style.display = 'block'; renderMap();
     }
   }
 
-  function hideAllViews() {
-    ['map-view','event-view','intro-view'].forEach(id => document.getElementById(id).style.display='none');
-  }
+  function hideAllViews() { ['map-view','event-view','intro-view'].forEach(id => document.getElementById(id).style.display='none'); }
 
   // 🗺️ Логика карты
-function renderMap(){
-  state.view='map';
-  hideAllViews();
-  document.getElementById('map-view').style.display='block';
-  const grid=document.getElementById('map-grid'); grid.innerHTML='';
-  
-  // 🔥 Показываем как доступные: текущие + разблокированные + посещённые (для возврата)
-  Object.values(MAP_DATA).forEach(node=>{
-    const el=document.createElement('div'); el.className='map-node';
-    const status = state.map.current===node.id ? 'current' : 
-                   state.map.unlocked.includes(node.id) ? 'available' :
-                   state.map.visited.includes(node.id) ? 'visited' : 'locked';
-    el.classList.add(status);
-    el.innerHTML=`<span class="node-icon">${node.icon}</span><div class="node-label">${node.label}</div><div class="node-status">${status==='current'?'Вы здесь':status==='available'?'Доступно':status==='visited'?'Пройдено':'Заблокировано'}</div>`;
-    // 🔥 Теперь можно кликать на available И visited
-    if(status==='available' || status==='visited'){ el.onclick=()=>enterNode(node.id); }
-    grid.appendChild(el);
-  });
-  saveState();
-}
+  function renderMap(){
+    state.view='map'; hideAllViews();
+    document.getElementById('map-view').style.display='block';
+    const grid=document.getElementById('map-grid'); grid.innerHTML='';
+    
+    Object.values(MAP_DATA).forEach(node=>{
+      const el=document.createElement('div'); el.className='map-node';
+      const status = state.map.current===node.id ? 'current' : 
+                     state.map.unlocked.includes(node.id) ? 'available' :
+                     state.map.visited.includes(node.id) ? 'visited' : 'locked';
+      el.classList.add(status);
+      el.innerHTML=`<span class="node-icon">${node.icon}</span><div class="node-label">${node.label}</div><div class="node-status">${status==='current'?'Вы здесь':status==='available'?'Доступно':status==='visited'?'Пройдено':'Заблокировано'}</div>`;
+      if(status==='available' || status==='visited'){ el.onclick=()=>enterNode(node.id); }
+      grid.appendChild(el);
+    });
+  }
 
-function enterNode(id){
-  const node=MAP_DATA[id];
-  state.map.current=id;
-  if(!state.map.visited.includes(id)) state.map.visited.push(id);
-  // 🔥 НЕ фильтруем visited из unlocked — можно возвращаться
-  state.map.unlocked=[...new Set([...state.map.unlocked, ...node.connections])];
-  state.lastEvent=id;
-  resolveNode(node);
-}
+  function enterNode(id){
+    const node=MAP_DATA[id];
+    state.map.current=id;
+    if(!state.map.visited.includes(id)) state.map.visited.push(id);
+    state.map.unlocked=[...new Set([...state.map.unlocked, ...node.connections])];
+    state.lastEvent=id;
+    resolveNode(node);
+  }
 
   function resolveNode(node){
-    state.view='event';
-    hideAllViews();
+    state.view='event'; hideAllViews();
     document.getElementById('event-view').style.display='block';
-    
     const txt=document.getElementById('event-text');
     const acts=document.getElementById('event-actions');
     let log=`[${node.icon}] ${node.label}\n`;
@@ -116,8 +96,7 @@ function enterNode(id){
       state.hp-=maxDmg;
       log+=`⚔️ Бой. Получено ${maxDmg} урона.\n`;
       if(survived){
-        log+=`🏆 Победа. +${node.reward.gold} золота.`;
-        state.gold+=node.reward.gold;
+        log+=`🏆 Победа. +${node.reward.gold} золота.`; state.gold+=node.reward.gold;
         if(node.reward.lvl){ state.lvl+=node.reward.lvl; log+=` +${node.reward.lvl} уровень.`; }
         actions.push({text:'✅ Продолжить', next:'map'});
       } else { log+=`💀 Вы погибли.`; actions.push({text:'🔄 Перезапуск', next:'death'}); }
@@ -127,8 +106,7 @@ function enterNode(id){
       actions.push({text:'📥 Забрать', next:'map'});
     }
     else if(node.type==='rest'){
-      log+=`🔥 Отдых. Восстановлено ${Math.min(node.heal, 100-state.hp)} HP.`;
-      state.hp=Math.min(100, state.hp+node.heal);
+      log+=`🔥 Отдых. Восстановлено ${Math.min(node.heal, 100-state.hp)} HP.`; state.hp=Math.min(100, state.hp+node.heal);
       actions.push({text:'🛌 Встать', next:'map'});
     }
     else if(node.type==='risk'){
@@ -151,15 +129,25 @@ function enterNode(id){
       const btn=document.createElement('button');
       btn.className='event-btn';
       btn.textContent=a.text;
-      btn.onclick=()=> a.next==='map' ? renderMap() : resetGame();
+      btn.onclick=()=> {
+        if(a.next==='map') renderMap(); 
+        else resetGame();
+        updateStatsUI(); // 🔥 Обновляем статы сразу после клика
+        saveState();
+      };
       acts.appendChild(btn);
     });
-    saveState();
   }
 
   // 💾 Сохранение
-  function saveState(){ localStorage.setItem('rpg_save', JSON.stringify(state)); }
-  function loadState(){ const s=localStorage.getItem('rpg_save'); if(s) state={...state, ...JSON.parse(s)}; }
+  function saveState(){ 
+    localStorage.setItem('rpg_save', JSON.stringify(state)); 
+    console.log('💾 Сохранено:', {hp:state.hp, gold:state.gold, lvl:state.lvl, view:state.view}); 
+  }
+  function loadState(){ 
+    const s=localStorage.getItem('rpg_save'); 
+    if(s) { state={...state, ...JSON.parse(s)}; console.log('📥 Загружено:', state); }
+  }
 
   // 🌟 Экспорт
   window.RPG = { startGame, continueGame, resetGame, showMenu, nextIntroPage };
@@ -167,7 +155,6 @@ function enterNode(id){
 
 // 🎬 Автоинициализация
 document.addEventListener('DOMContentLoaded', ()=>{
-  updateContinue();
-  loadState();
+  updateContinue(); loadState(); updateStatsUI();
   if(gameStarted) { switchUI('game'); if(state.view==='map') renderMap(); else if(state.view==='intro') showIntro(true); else showEvent(state.lastEvent||'n1'); }
 });
