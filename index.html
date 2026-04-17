@@ -1,176 +1,149 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-  <title>⚔️ Perseus RPG</title>
-<style>
-  :root {
-    --bg-primary: #0a0a1a;
-    --bg-secondary: #1a1a2e;
-    --bg-tertiary: #252542;
-    --accent: #4a55ff;
-    --accent-hover: #5a65ff;
-    --gold: #ffd700;
-    --text: #e0e0ff;
-    --text-muted: #aaa;
-    --border: rgba(106, 90, 249, 0.3);
-    --radius: 12px;
-    --shadow: 0 4px 20px rgba(0,0,0,0.4);
-    --touch-min: 48px;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  
-  body { 
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; 
-    background: radial-gradient(circle at 20% 30%, #1a1a3a 0%, var(--bg-primary) 70%); 
-    color: var(--text); 
-    min-height: 100dvh; /* Dynamic viewport height для мобильных */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: clamp(0.8rem, 2vw, 1.5rem);
-    position: relative;
-    overflow-x: hidden;
-    line-height: 1.5;
-  }
-
-  .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-  .star { position: absolute; width: 2px; height: 2px; background: rgba(255,255,255,0.8); border-radius: 50%; animation: twinkle 2s infinite ease-in-out; }
-  @keyframes twinkle { 0%,100%{opacity:0.3;transform:scale(1);} 50%{opacity:1;transform:scale(1.2);} }
-
-  /* 🎮 Главное меню */
-  #start-menu { 
-    text-align: center; z-index: 10; animation: fadeIn 0.6s ease-out; 
-    width: min(100%, 500px); margin-top: clamp(1rem, 10vh, 4rem); 
-  }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-  
-  #title { 
-    font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 800; margin-bottom: 0.4rem; 
-    background: linear-gradient(90deg, #ffd700, #ff6b6b, #4ecdc4, #ffd700); 
-    background-size: 300% 300%; -webkit-background-clip: text; background-clip: text; color: transparent; 
-    animation: gradientShift 4s ease infinite; letter-spacing: -0.5px;
-  }
-  @keyframes gradientShift { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
-  #subtitle { font-size: clamp(0.9rem, 2.5vw, 1.1rem); color: var(--text-muted); margin-bottom: 1.5rem; font-style: italic; }
-
-  .menu-btn { 
-    display: block; width: 100%; min-height: var(--touch-min); 
-    margin: 10px 0; padding: clamp(12px, 2vw, 16px) 20px; 
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover)); 
-    color: white; border: none; border-radius: var(--radius); 
-    font-size: clamp(0.95rem, 2.5vw, 1.1rem); font-weight: 600; 
-    cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow); 
-    touch-action: manipulation;
-  }
-  .menu-btn:active { transform: scale(0.98); }
-  .menu-btn.secondary { background: linear-gradient(135deg, #2a2a4a, #3a3a5a); box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
-  .menu-btn.danger { background: linear-gradient(135deg, #ff4757, #ff6b7a); }
-
-  /* 🎮 Игровой интерфейс */
-  #game-ui { display: none; z-index: 10; width: min(100%, 850px); margin-top: 0.5rem; animation: slideUp 0.4s ease-out; }
-  @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-
-  #stats { 
-    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); 
-    padding: clamp(8px, 2vw, 12px) clamp(10px, 2vw, 16px); 
-    border-radius: var(--radius); margin-bottom: 1rem; 
-    display: flex; justify-content: center; flex-wrap: wrap; gap: clamp(8px, 2vw, 16px); 
-    font-weight: 600; border: 1px solid var(--border); box-shadow: var(--shadow); 
-    font-size: clamp(0.85rem, 2vw, 1rem);
-  }
-  #stats span { color: var(--gold); }
-
-  /* 🗺️ Карта */
-  #map-view { margin-bottom: 1rem; }
-  .map-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-  .map-node { 
-    padding: 14px; border-radius: var(--radius); border: 2px solid #333; background: var(--bg-secondary); 
-    text-align: center; cursor: pointer; transition: all 0.2s; min-height: var(--touch-min); display: flex; flex-direction: column; justify-content: center; align-items: center; touch-action: manipulation;
-  }
-  .map-node.locked { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); pointer-events: none; }
-  .map-node.available { border-color: var(--accent); box-shadow: 0 0 12px rgba(74,85,255,0.25); }
-  .map-node.available:active { transform: scale(0.97); background: #222244; }
-  .map-node.current { border-color: var(--gold); background: var(--bg-tertiary); box-shadow: 0 0 15px rgba(255,215,0,0.3); }
-  .map-node.visited { border-color: #4ecdc4; opacity: 0.8; }
-  .node-icon { font-size: clamp(1.5rem, 4vw, 1.8rem); display: block; margin-bottom: 4px; }
-  .node-label { font-weight: 600; font-size: clamp(0.8rem, 2vw, 0.95rem); margin-bottom: 2px; }
-  .node-status { font-size: 0.7rem; color: #888; }
-
-  /* 📖 События и Интро */
-  #event-view, #intro-view { 
-    display: none; background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); 
-    padding: clamp(1rem, 3vw, 1.5rem); border-radius: var(--radius); 
-    border-left: 4px solid #6a5af9; min-height: 150px; margin-bottom: 1rem; 
-  }
-  #event-text, #intro-text { font-size: clamp(0.95rem, 2.5vw, 1.1rem); line-height: 1.6; margin-bottom: 1rem; white-space: pre-line; }
-  #intro-image { max-width: 100%; height: auto; border-radius: var(--radius); margin: 0.5rem 0 1rem; box-shadow: var(--shadow); object-fit: cover; }
-  #intro-page-indicator { text-align: right; font-size: 0.8rem; color: #888; margin-top: 8px; }
-  
-  #event-actions, #intro-actions { display: flex; flex-direction: column; gap: 10px; }
-  .event-btn, .intro-btn { 
-    display: block; width: 100%; min-height: var(--touch-min); padding: 12px 16px; 
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover)); 
-    color: white; border: none; border-radius: calc(var(--radius) - 4px); 
-    cursor: pointer; font-size: clamp(0.9rem, 2.2vw, 1rem); font-weight: 500; 
-    transition: all 0.2s; touch-action: manipulation;
-  }
-  .event-btn:active, .intro-btn:active { transform: scale(0.98); filter: brightness(0.9); }
-
-  #menu-toggle { 
-    position: fixed; top: env(safe-area-inset-top, 15px); right: env(safe-area-inset-right, 15px); 
-    padding: 10px 14px; background: rgba(26,26,46,0.95); border: 1px solid var(--border); 
-    color: #aaa; border-radius: 8px; cursor: pointer; font-size: 0.85rem; z-index: 50; 
-    transition: all 0.2s; min-height: 44px; display: flex; align-items: center; touch-action: manipulation;
-  }
-  #menu-toggle:active { background: rgba(42,42,74,0.98); color: #fff; }
-
-  /* 📱 Мобильные оптимизации */
-  @media (max-width: 480px) {
-    .map-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    #stats { flex-direction: column; align-items: stretch; gap: 6px; }
-    .menu-btn { margin: 8px 0; }
-  }
-
-  /* 🌐 Предотвращение скролла при открытом меню на iOS */
-  body.menu-open { overflow: hidden; }
-</style>
+    <meta charset="UTF-8">
+    <title>Герой поневоле — прототип</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1a0f08; color: #e6d5b8; margin: 20px; }
+        #game { max-width: 700px; margin: auto; border: 3px solid #8b5a2b; padding: 15px; background: #2c1e14; }
+        #log { height: 350px; overflow-y: auto; background: #0f0a05; padding: 10px; border: 1px solid #8b5a2b; margin-bottom: 15px; }
+        button { margin: 5px; padding: 10px 15px; background: #8b5a2b; color: #e6d5b8; border: none; cursor: pointer; }
+        button:hover { background: #a67c52; }
+        input { width: 70%; padding: 8px; margin: 5px 0; }
+        .npc { color: #ffcc77; }
+    </style>
 </head>
 <body>
-  <div class="stars" id="stars"></div>
-  <script>(function(){for(let i=0;i<80;i++){const s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.animationDelay=Math.random()*2+'s';document.getElementById('stars').appendChild(s);}})();</script>
+    <div id="game">
+        <h1>Трактир «У Сгоревшего Дракона»</h1>
+        <p><strong>Ты сидишь за стойкой. Голова трещит после вчерашнего. Все вокруг почему-то считают тебя героем.</strong></p>
+        
+        <div id="log"></div>
 
-  <div id="start-menu">
-    <h1 id="title">⚔️ PERSEUS RPG</h1>
-    <p id="subtitle">Механический протокол инициализирован...</p>
-    <button class="menu-btn" onclick="RPG.startGame()">🗡️ Новая сессия</button>
-    <button class="menu-btn secondary" id="continue-btn" onclick="RPG.continueGame()" style="display:none">▶️ Загрузить сессию</button>
-    <button class="menu-btn danger" onclick="RPG.resetGame()">🗑️ Сброс данных</button>
-  </div>
+        <div>
+            <button onclick="lookAround()">Осмотреться</button>
+            <button onclick="talkToGrom()">Поговорить с Громом (бармен)</button>
+            <button onclick="randomEvent()">Случайное событие</button>
+        </div>
 
-  <div id="game-ui">
-    <button id="menu-toggle" onclick="RPG.showMenu()">⚙️ Меню</button>
-    <div id="stats">❤️ HP: <span id="hp">100</span> | 🪙 Золото: <span id="gold">0</span> | ⭐ Ур: <span id="lvl">1</span></div>
-    
-    <!-- 🎬 Вступительная сцена -->
-    <div id="intro-view">
-      <div id="intro-text"></div>
-      <img id="intro-image" src="" alt="intro">
-      <div id="intro-actions">
-        <button class="intro-btn" onclick="RPG.nextIntroPage()">Далее →</button>
-      </div>
-      <div id="intro-page-indicator"></div>
+        <div id="chatArea" style="display:none; margin-top:15px;">
+            <p class="npc"><strong>Гром:</strong> <span id="npcReply"></span></p>
+            <input type="text" id="playerInput" placeholder="Что сказать Грому...">
+            <button onclick="sendMessageToGrom()">Сказать</button>
+            <button onclick="endChat()">Закончить разговор</button>
+        </div>
     </div>
 
-    <div id="map-view"><div class="map-grid" id="map-grid"></div></div>
-    <div id="event-view"><div id="event-text"></div><div id="event-actions"></div></div>
-  </div>
+    <script>
+        const API_KEY = "AQ.Ab8RN6LTtsvKqsJs3jNajqQCAGMc_Nb8lyCY3jc_FyjyOSGrIw";   // ←←← ВСТАВЬ СВОЙ КЛЮЧ СЮДА
+        const MODEL = "gemini-2.5-flash";   // быстрый и достаточно умный в 2026
 
-  <!-- 🔗 Порядок подключения важен -->
-  <script src="data/map.js"></script>
-  <script src="data/intro.js"></script>
-  <script src="engine.js"></script>
+        let conversationHistory = []; // память диалога
+
+        const systemPrompt = `Ты — Бармен Гром, бывший наёмник, циничный мужик лет 50 с хриплым голосом. 
+        Мир — фэнтези с чёрным юмором, как у Пратчетта. Ты не любишь героев, но уважаешь тех, кто хорошо платит или умеет смешно врать. 
+        Говоришь коротко, с сарказмом, матерком иногда, но не переигрывай. 
+        Отвечай максимум 2–4 предложения.`;
+
+        function addLog(text, className = "") {
+            const log = document.getElementById("log");
+            const p = document.createElement("p");
+            p.innerHTML = text;
+            if (className) p.className = className;
+            log.appendChild(p);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        async function askGemini(prompt) {
+            if (!API_KEY || API_KEY === "ВАШ_КЛЮЧ_ЗДЕСЬ") {
+                addLog("❌ Ключ не вставлен! Замени ВАШ_КЛЮЧ_ЗДЕСЬ на реальный ключ.", "npc");
+                return "Магия не сработала...";
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+
+            const requestBody = {
+                contents: [{
+                    parts: [{ text: prompt }]
+                }],
+                generationConfig: {
+                    temperature: 0.85,
+                    maxOutputTokens: 300
+                }
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                if (data.candidates && data.candidates[0]) {
+                    return data.candidates[0].content.parts[0].text.trim();
+                } else {
+                    return "Гром что-то буркнул и отвернулся...";
+                }
+            } catch (err) {
+                console.error(err);
+                return "Связь с магией пропала. Попробуй позже.";
+            }
+        }
+
+        // Действия
+        async function lookAround() {
+            addLog("<strong>Ты осмотрелся:</strong> Старый трактир, дымно, пахнет пивом и горелым мясом. За стойкой — Гром вытирает кружку. В углу спит какой-то рыцарь в ржавых доспехах.");
+        }
+
+        async function randomEvent() {
+            addLog("<strong>Случайное событие...</strong>");
+            const prompt = `Ты — мастер случайных событий в юмористическом фэнтези. 
+            Игрок сидит в трактире. Придумай короткое забавное или глупое событие (взрослый юмор разрешён). 
+            1–3 предложения, в повествовательном стиле.`;
+
+            const result = await askGemini(prompt);
+            addLog(result);
+        }
+
+        // Диалог с Громом
+        function talkToGrom() {
+            document.getElementById("chatArea").style.display = "block";
+            addLog("<span class='npc'><strong>Гром:</strong> Ну чё, «герой», опять нажрался или уже мир спасать собрался?</span>");
+            conversationHistory = []; // начинаем новый разговор
+        }
+
+        async function sendMessageToGrom() {
+            const input = document.getElementById("playerInput");
+            const message = input.value.trim();
+            if (!message) return;
+
+            addLog(`<strong>Ты:</strong> ${message}`);
+            input.value = "";
+
+            conversationHistory.push(`Игрок: ${message}`);
+
+            const fullPrompt = `${systemPrompt}\n\nИстория разговора:\n${conversationHistory.join("\n")}\nГром:`;
+
+            const reply = await askGemini(fullPrompt);
+            addLog(`<span class='npc'><strong>Гром:</strong> ${reply}</span>`);
+
+            conversationHistory.push(`Гром: ${reply}`);
+
+            // оставляем только последние 6 реплик
+            if (conversationHistory.length > 10) conversationHistory = conversationHistory.slice(-10);
+        }
+
+        function endChat() {
+            document.getElementById("chatArea").style.display = "none";
+            addLog("<em>Ты отошёл от стойки.</em>");
+        }
+
+        // Приветствие при старте
+        window.onload = () => {
+            addLog("Добро пожаловать в прототип! Нажимай кнопки и пробуй.");
+            addLog("Сначала попробуй «Осмотреться» или «Случайное событие».");
+        };
+    </script>
 </body>
 </html>
