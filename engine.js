@@ -1,33 +1,42 @@
-// engine.js (ЗАМЕНИТЬ ПОЛНОСТЬЮ)
+// engine.js
 (function() {
-  let state = { hp:100, gold:0, lvl:1, view:'intro', map:{current:'n1', visited:['n1'], unlocked:['n2','n3']} };
-  let gameStarted = false;
+  // 🔥 state теперь содержит флаг started
+  let state = { hp:100, gold:0, lvl:1, view:'intro', started:false, map:{current:'n1', visited:['n1'], unlocked:['n2','n3']} };
   let currentIntroPage = 0;
 
   // 🎮 Управление
   function startGame() { 
-    if(!gameStarted){ state={hp:100,gold:0,lvl:1,view:'intro',map:{current:'n1',visited:['n1'],unlocked:['n2','n3']}}; } 
-    gameStarted=true; switchUI('game'); updateStatsUI(); showIntro(); 
+    if(!state.started){ 
+      state={hp:100,gold:0,lvl:1,view:'intro',started:true,map:{current:'n1',visited:['n1'],unlocked:['n2','n3']}}; 
+    } 
+    switchUI('game'); updateStatsUI(); showIntro(false); 
   }
   function continueGame() { 
-    loadState(); gameStarted=true; switchUI('game'); updateStatsUI();
+    loadState(); 
+    switchUI('game'); updateStatsUI();
     if(state.view==='intro') showIntro(true); 
     else if(state.view==='map') renderMap(); 
-    else showEvent(state.lastEvent||'n1'); 
+    else if(state.view==='event' && MAP_DATA[state.lastEvent]) resolveNode(MAP_DATA[state.lastEvent]);
   }
-  function resetGame() { if(confirm('⚠️ Удалить прогресс?')){ localStorage.removeItem('rpg_save'); state={hp:100,gold:0,lvl:1,view:'intro',map:{current:'n1',visited:['n1'],unlocked:['n2','n3']}}; gameStarted=false; switchUI('menu'); updateContinue(); } }
+  function resetGame() { 
+    if(confirm('⚠️ Удалить прогресс?')){ 
+      localStorage.removeItem('rpg_save'); 
+      state={hp:100,gold:0,lvl:1,view:'intro',started:false,map:{current:'n1',visited:['n1'],unlocked:['n2','n3']}}; 
+      switchUI('menu'); updateContinue(); 
+    } 
+  }
   function showMenu() { if(confirm('⏸️ В главное меню? Прогресс сохранён.')){ switchUI('menu'); updateContinue(); } }
   function switchUI(mode){ document.getElementById('start-menu').style.display=mode==='menu'?'block':'none'; document.getElementById('game-ui').style.display=mode==='game'?'block':'none'; }
   function updateContinue(){ document.getElementById('continue-btn').style.display=localStorage.getItem('rpg_save')?'block':'none'; }
 
-  // 📊 Обновление статов (НОВОЕ)
+  // 📊 UI
   function updateStatsUI() {
     document.getElementById('hp').textContent = state.hp;
     document.getElementById('gold').textContent = state.gold;
     document.getElementById('lvl').textContent = state.lvl;
   }
 
-  // 🎬 Логика интро
+  // 🎬 Интро
   function showIntro(isResume=false) {
     currentIntroPage = isResume ? (state.introPage || 0) : 0;
     state.view = 'intro'; hideAllViews();
@@ -51,23 +60,25 @@
       hideAllViews(); document.getElementById('map-view').style.display = 'block'; renderMap();
     }
   }
-
   function hideAllViews() { ['map-view','event-view','intro-view'].forEach(id => document.getElementById(id).style.display='none'); }
 
-  // 🗺️ Логика карты
+  // 🗺️ Карта с Fog of War
   function renderMap(){
     state.view='map'; hideAllViews();
     document.getElementById('map-view').style.display='block';
     const grid=document.getElementById('map-grid'); grid.innerHTML='';
     
+    // 🔥 Рендерим ТОЛЬКО известные узлы
     Object.values(MAP_DATA).forEach(node=>{
+      const isKnown = state.map.visited.includes(node.id) || state.map.unlocked.includes(node.id);
+      if (!isKnown) return; // Скрыт в тумане войны
+
       const el=document.createElement('div'); el.className='map-node';
       const status = state.map.current===node.id ? 'current' : 
-                     state.map.unlocked.includes(node.id) ? 'available' :
-                     state.map.visited.includes(node.id) ? 'visited' : 'locked';
+                     state.map.unlocked.includes(node.id) ? 'available' : 'visited';
       el.classList.add(status);
-      el.innerHTML=`<span class="node-icon">${node.icon}</span><div class="node-label">${node.label}</div><div class="node-status">${status==='current'?'Вы здесь':status==='available'?'Доступно':status==='visited'?'Пройдено':'Заблокировано'}</div>`;
-      if(status==='available' || status==='visited'){ el.onclick=()=>enterNode(node.id); }
+      el.innerHTML=`<span class="node-icon">${node.icon}</span><div class="node-label">${node.label}</div><div class="node-status">${status==='current'?'Вы здесь':status==='available'?'Доступно':'Пройдено'}</div>`;
+      el.onclick = () => enterNode(node.id);
       grid.appendChild(el);
     });
   }
@@ -90,38 +101,36 @@
     let actions=[];
 
     if(node.type==='combat'||node.type==='boss'){
-      const dmg=node.enemy.atk;
-      const maxDmg=dmg+Math.floor(Math.random()*5);
+      const maxDmg=node.enemy.atk+Math.floor(Math.random()*5);
       const survived=state.hp>maxDmg;
       state.hp-=maxDmg;
-      log+=`⚔️ Бой. Получено ${maxDmg} урона.\n`;
+      log+=`⚔️ Бой. -${maxDmg} HP.\n`;
       if(survived){
-        log+=`🏆 Победа. +${node.reward.gold} золота.`; state.gold+=node.reward.gold;
-        if(node.reward.lvl){ state.lvl+=node.reward.lvl; log+=` +${node.reward.lvl} уровень.`; }
-        actions.push({text:'✅ Продолжить', next:'map'});
+        log+=`🏆 Победа. +${node.reward.gold} 🪙`; state.gold+=node.reward.gold;
+        if(node.reward.lvl){ state.lvl+=node.reward.lvl; log+=` | +${node.reward.lvl} ⭐`; }
+        actions.push({text:'✅ Дальше', next:'map'});
       } else { log+=`💀 Вы погибли.`; actions.push({text:'🔄 Перезапуск', next:'death'}); }
     }
     else if(node.type==='loot'){
-      log+=`📦 Найдено: +${node.loot.gold} золота.`; state.gold+=node.loot.gold;
+      log+=`📦 Найдено: +${node.loot.gold} 🪙`; state.gold+=node.loot.gold;
       actions.push({text:'📥 Забрать', next:'map'});
     }
     else if(node.type==='rest'){
-      log+=`🔥 Отдых. Восстановлено ${Math.min(node.heal, 100-state.hp)} HP.`; state.hp=Math.min(100, state.hp+node.heal);
+      const healed=Math.min(node.heal, 100-state.hp);
+      log+=`🔥 Отдых. +${healed} ❤️`; state.hp+=healed;
       actions.push({text:'🛌 Встать', next:'map'});
     }
     else if(node.type==='risk'){
-      const success=Math.random()<node.chance;
-      if(success){
-        log+=`✨ Удача! +${node.reward.gold} золота`; state.gold+=node.reward.gold;
-        if(node.reward.lvl){ state.lvl+=node.reward.lvl; log+=`, +${node.reward.lvl} уровень`; }
-        log+='.';
+      if(Math.random()<node.chance){
+        log+=`✨ Удача! +${node.reward.gold} 🪙`; state.gold+=node.reward.gold;
+        if(node.reward.lvl){ state.lvl+=node.reward.lvl; log+=` | +${node.reward.lvl} ⭐`; }
       } else {
-        log+=`⚡ Риск не оправдался. -${node.penalty.hp} HP.`; state.hp-=node.penalty.hp;
+        log+=`⚡ Неудача. -${node.penalty.hp} ❤️`; state.hp-=node.penalty.hp;
         if(state.hp<=0){ log+='\n💀 Смерть.'; actions.push({text:'🔄 Перезапуск', next:'death'}); }
       }
       if(!actions.length) actions.push({text:'✅ Дальше', next:'map'});
     }
-    else if(node.type==='start'){ log+='🌄 Точка старта.'; actions.push({text:'🗺️ К карте', next:'map'}); }
+    else { log+='🌄 Точка старта.'; actions.push({text:'🗺️ К карте', next:'map'}); }
 
     txt.innerText=log;
     acts.innerHTML='';
@@ -130,31 +139,36 @@
       btn.className='event-btn';
       btn.textContent=a.text;
       btn.onclick=()=> {
-        if(a.next==='map') renderMap(); 
-        else resetGame();
-        updateStatsUI(); // 🔥 Обновляем статы сразу после клика
-        saveState();
+        if(a.next==='map') renderMap(); else resetGame();
+        updateStatsUI(); saveState();
       };
       acts.appendChild(btn);
     });
   }
 
-  // 💾 Сохранение
+  // 💾 Сохранение (защита от ошибок мобильных браузеров)
   function saveState(){ 
-    localStorage.setItem('rpg_save', JSON.stringify(state)); 
-    console.log('💾 Сохранено:', {hp:state.hp, gold:state.gold, lvl:state.lvl, view:state.view}); 
+    try { localStorage.setItem('rpg_save', JSON.stringify(state)); } 
+    catch(e) { console.warn('Save failed:', e); }
   }
   function loadState(){ 
-    const s=localStorage.getItem('rpg_save'); 
-    if(s) { state={...state, ...JSON.parse(s)}; console.log('📥 Загружено:', state); }
+    try {
+      const s=localStorage.getItem('rpg_save'); 
+      if(s) { state={...state, ...JSON.parse(s), started:true}; }
+    } catch(e) { console.warn('Load failed:', e); }
   }
 
   // 🌟 Экспорт
   window.RPG = { startGame, continueGame, resetGame, showMenu, nextIntroPage };
 })();
 
-// 🎬 Автоинициализация
+// 🎬 Инициализация (теперь опирается на saved state, а не на переменную)
 document.addEventListener('DOMContentLoaded', ()=>{
   updateContinue(); loadState(); updateStatsUI();
-  if(gameStarted) { switchUI('game'); if(state.view==='map') renderMap(); else if(state.view==='intro') showIntro(true); else showEvent(state.lastEvent||'n1'); }
+  if(state.started) {
+    switchUI('game');
+    if(state.view==='map') renderMap();
+    else if(state.view==='intro') showIntro(true);
+    else if(state.view==='event' && MAP_DATA[state.lastEvent]) resolveNode(MAP_DATA[state.lastEvent]);
+  }
 });
