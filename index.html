@@ -2,32 +2,41 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Герой поневоле — прототип</title>
+    <title>Герой поневоле — прототип v5</title>
     <style>
         body { font-family: Arial, sans-serif; background: #1a0f08; color: #e6d5b8; margin: 20px; }
-        #game { max-width: 700px; margin: auto; border: 3px solid #8b5a2b; padding: 15px; background: #2c1e14; }
-        #log { height: 350px; overflow-y: auto; background: #0f0a05; padding: 10px; border: 1px solid #8b5a2b; margin-bottom: 15px; }
-        button { margin: 5px; padding: 10px 15px; background: #8b5a2b; color: #e6d5b8; border: none; cursor: pointer; }
+        #game { max-width: 760px; margin: auto; border: 3px solid #8b5a2b; padding: 20px; background: #2c1e14; }
+        #status { background: #1a0f08; padding: 15px; border: 2px solid #8b5a2b; margin-bottom: 15px; font-size: 15px; line-height: 1.6; }
+        #log { height: 400px; overflow-y: auto; background: #0f0a05; padding: 15px; border: 1px solid #8b5a2b; margin-bottom: 15px; line-height: 1.55; }
+        button { margin: 6px 4px; padding: 12px 18px; background: #8b5a2b; color: #e6d5b8; border: none; cursor: pointer; font-size: 15px; }
         button:hover { background: #a67c52; }
-        input { width: 70%; padding: 8px; margin: 5px 0; }
+        input { width: 68%; padding: 10px; margin: 8px 0; font-size: 15px; }
         .npc { color: #ffcc77; }
+        .system { color: #88cc88; }
+        .error { color: #ff8888; }
+        .status-value { color: #ffdd88; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="game">
-        <h1>Трактир «У Сгоревшего Дракона»</h1>
-        <p><strong>Ты сидишь за стойкой. Голова трещит после вчерашнего. Все вокруг почему-то считают тебя героем.</strong></p>
+        <h1>Герой поневоле</h1>
         
+        <div id="status">
+            <strong>Твоё состояние:</strong><br>
+            💰 Золото: <span id="gold" class="status-value">15</span> монет &nbsp;&nbsp;&nbsp;
+            ❤️ Самочувствие: <span id="hp" class="status-value">85</span>/100 &nbsp;&nbsp;&nbsp;
+            🏆 Героизм: <span id="heroism" class="status-value">15</span>/100
+        </div>
+
         <div id="log"></div>
 
         <div>
             <button onclick="lookAround()">Осмотреться</button>
-            <button onclick="talkToGrom()">Поговорить с Громом (бармен)</button>
+            <button onclick="talkToGrom()">Поговорить с Громом</button>
             <button onclick="randomEvent()">Случайное событие</button>
         </div>
 
-        <div id="chatArea" style="display:none; margin-top:15px;">
-            <p class="npc"><strong>Гром:</strong> <span id="npcReply"></span></p>
+        <div id="chatArea" style="display:none; margin-top:20px;">
             <input type="text" id="playerInput" placeholder="Что сказать Грому...">
             <button onclick="sendMessageToGrom()">Сказать</button>
             <button onclick="endChat()">Закончить разговор</button>
@@ -35,15 +44,18 @@
     </div>
 
     <script>
-        const API_KEY = "AQ.Ab8RN6LTtsvKqsJs3jNajqQCAGMc_Nb8lyCY3jc_FyjyOSGrIw";   // ←←← ВСТАВЬ СВОЙ КЛЮЧ СЮДА
-        const MODEL = "gemini-2.5-flash";   // быстрый и достаточно умный в 2026
+        const API_KEY = "AQ.Ab8RN6KCRjWmHgx9qMsM6VdDAaHcLlFy1K0XcSNUnSz3pg6K1Q";   // ← ВСТАВЬ СВОЙ КЛЮЧ
+        const MODEL = "gemini-2.5-flash-lite";
 
-        let conversationHistory = []; // память диалога
+        let conversationHistory = [];
+        let playerState = {
+            gold: 15,
+            hp: 85,        // Самочувствие
+            heroism: 15
+        };
 
-        const systemPrompt = `Ты — Бармен Гром, бывший наёмник, циничный мужик лет 50 с хриплым голосом. 
-        Мир — фэнтези с чёрным юмором, как у Пратчетта. Ты не любишь героев, но уважаешь тех, кто хорошо платит или умеет смешно врать. 
-        Говоришь коротко, с сарказмом, матерком иногда, но не переигрывай. 
-        Отвечай максимум 2–4 предложения.`;
+        const systemPrompt = `Ты — Бармен Гром, циничный бывший наёмник с чёрным юмором в стиле Терри Пратчетта. 
+Отвечай коротко, с сарказмом, иногда подкалывай.`;
 
         function addLog(text, className = "") {
             const log = document.getElementById("log");
@@ -54,63 +66,76 @@
             log.scrollTop = log.scrollHeight;
         }
 
+        function updateStatus() {
+            document.getElementById("gold").textContent = playerState.gold;
+            document.getElementById("hp").textContent = playerState.hp;
+            document.getElementById("heroism").textContent = playerState.heroism;
+        }
+
         async function askGemini(prompt) {
-            if (!API_KEY || API_KEY === "ВАШ_КЛЮЧ_ЗДЕСЬ") {
-                addLog("❌ Ключ не вставлен! Замени ВАШ_КЛЮЧ_ЗДЕСЬ на реальный ключ.", "npc");
-                return "Магия не сработала...";
-            }
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
-
-            const requestBody = {
-                contents: [{
-                    parts: [{ text: prompt }]
-                }],
-                generationConfig: {
-                    temperature: 0.85,
-                    maxOutputTokens: 300
-                }
-            };
-
             try {
-                const response = await fetch(url, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.9, maxOutputTokens: 450 }
+                    })
                 });
 
+                if (!response.ok) return "Гром молча отвернулся...";
+
                 const data = await response.json();
-                if (data.candidates && data.candidates[0]) {
-                    return data.candidates[0].content.parts[0].text.trim();
-                } else {
-                    return "Гром что-то буркнул и отвернулся...";
-                }
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                return text && text.length > 5 ? text : "Гром что-то буркнул...";
             } catch (err) {
-                console.error(err);
-                return "Связь с магией пропала. Попробуй позже.";
+                return "Магия не сработала...";
             }
         }
 
-        // Действия
-        async function lookAround() {
-            addLog("<strong>Ты осмотрелся:</strong> Старый трактир, дымно, пахнет пивом и горелым мясом. За стойкой — Гром вытирает кружку. В углу спит какой-то рыцарь в ржавых доспехах.");
-        }
-
+        // Случайное событие с реальным изменением состояния
         async function randomEvent() {
-            addLog("<strong>Случайное событие...</strong>");
-            const prompt = `Ты — мастер случайных событий в юмористическом фэнтези. 
-            Игрок сидит в трактире. Придумай короткое забавное или глупое событие (взрослый юмор разрешён). 
-            1–3 предложения, в повествовательном стиле.`;
+            addLog("<strong>→ Случайное событие...</strong>", "system");
+
+            const prompt = `Придумай короткое забавное или абсурдное событие в трактире в стиле фэнтези с чёрным юмором (Пратчетт).
+Игрок имеет ${playerState.gold} монет, самочувствие ${playerState.hp}/100, героизм ${playerState.heroism}.
+Опиши событие в 2-4 предложения.
+В конце обязательно напиши в формате:
+ИЗМЕНЕНИЯ: золото +X или -Y, самочувствие +A или -B, героизм +C или -D
+Где X,Y,A,B,C,D — небольшие числа (от -15 до +10).`;
 
             const result = await askGemini(prompt);
             addLog(result);
+
+            // Парсим изменения из ответа ИИ
+            const changeMatch = result.match(/ИЗМЕНЕНИЯ:\s*(.*)/i);
+            if (changeMatch) {
+                const changes = changeMatch[1].toLowerCase();
+                
+                // Золото
+                const goldMatch = changes.match(/золото\s*([+-]?\d+)/);
+                if (goldMatch) playerState.gold = Math.max(0, playerState.gold + parseInt(goldMatch[1]));
+
+                // Самочувствие
+                const hpMatch = changes.match(/самочувствие\s*([+-]?\d+)/);
+                if (hpMatch) playerState.hp = Math.max(0, Math.min(100, playerState.hp + parseInt(hpMatch[1])));
+
+                // Героизм
+                const heroismMatch = changes.match(/героизм\s*([+-]?\d+)/);
+                if (heroismMatch) playerState.heroism = Math.max(0, Math.min(100, playerState.heroism + parseInt(heroismMatch[1])));
+
+                updateStatus();
+            }
         }
 
-        // Диалог с Громом
+        function lookAround() {
+            addLog("<strong>Ты осмотрелся:</strong> Дымный трактир, пахнет кислым элем. Гром лениво протирает кружку. В углу кто-то храпит.", "system");
+        }
+
         function talkToGrom() {
             document.getElementById("chatArea").style.display = "block";
-            addLog("<span class='npc'><strong>Гром:</strong> Ну чё, «герой», опять нажрался или уже мир спасать собрался?</span>");
-            conversationHistory = []; // начинаем новый разговор
+            addLog('<span class="npc"><strong>Гром:</strong> Ну чё, «герой», опять нажрался или уже мир спасать собрался?</span>');
+            conversationHistory = [];
         }
 
         async function sendMessageToGrom() {
@@ -123,26 +148,30 @@
 
             conversationHistory.push(`Игрок: ${message}`);
 
-            const fullPrompt = `${systemPrompt}\n\nИстория разговора:\n${conversationHistory.join("\n")}\nГром:`;
+            const fullPrompt = `${systemPrompt}\n\nСостояние игрока: ${playerState.gold} золота, самочувствие ${playerState.hp}, героизм ${playerState.heroism}.\nРазговор:\n${conversationHistory.join("\n")}\nГром:`;
 
             const reply = await askGemini(fullPrompt);
-            addLog(`<span class='npc'><strong>Гром:</strong> ${reply}</span>`);
+            addLog(`<span class="npc"><strong>Гром:</strong> ${reply}</span>`);
 
             conversationHistory.push(`Гром: ${reply}`);
+            if (conversationHistory.length > 12) conversationHistory = conversationHistory.slice(-12);
 
-            // оставляем только последние 6 реплик
-            if (conversationHistory.length > 10) conversationHistory = conversationHistory.slice(-10);
+            // Иногда Гром даёт монетку или подкалывает
+            if (Math.random() > 0.65) {
+                playerState.heroism = Math.min(100, playerState.heroism + 4);
+                updateStatus();
+            }
         }
 
         function endChat() {
             document.getElementById("chatArea").style.display = "none";
-            addLog("<em>Ты отошёл от стойки.</em>");
+            addLog("<em>Ты отошёл от стойки.</em>", "system");
         }
 
-        // Приветствие при старте
         window.onload = () => {
-            addLog("Добро пожаловать в прототип! Нажимай кнопки и пробуй.");
-            addLog("Сначала попробуй «Осмотреться» или «Случайное событие».");
+            updateStatus();
+            addLog("Прототип v5 запущен. Теперь события реально меняют твоё состояние!", "system");
+            addLog("Попробуй «Случайное событие» несколько раз.", "system");
         };
     </script>
 </body>
